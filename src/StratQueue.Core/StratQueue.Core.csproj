@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <RootNamespace>StratQueue</RootNamespace>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- NuGet Package Metadata -->
+  <PropertyGroup>
+    <PackageId>StratQueue</PackageId>
+    <Description>In-memory work queue with pluggable dequeue strategies (FIFO, round-robin) and SQLite persistence. No external infrastructure required.</Description>
+    <Authors>Andrea Mancuso</Authors>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/andreamancuso/StratQueue</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>queue;persistent;strategy;round-robin;fifo;sqlite;embedded;scheduling</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="StratQueue.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.*" />
+  </ItemGroup>
+
+</Project>
