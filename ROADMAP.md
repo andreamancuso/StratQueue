@@ -363,34 +363,7 @@ public enum RecoveryPolicy { ResetToPending, LeaveCheckedOut }
 
 ---
 
-## Phase 3 — Guida Integration
-
-**Goal**: Migrate Guida's `g.queue.*` from LiteDB/LiteQueue to StratQueue.
-
-### 3.1 — Replace `ScriptQueueRepository`
-- Remove LiteDB/LiteQueue dependency for queues
-- New `ScriptQueueRepository` backed by `StratQueueClient`
-- Workspace-scoped lifecycle: create/dispose `StratQueueClient` in `OnWorkspaceChanged()`
-- SQLite file: `queue.db` in workspace root (same name, new format)
-
-### 3.2 — Update `g.queue.*` API
-- `g.queue.enqueue(name, data, options?)` — add `group` field to options
-- `g.queue.dequeue(name, options?)` — add optional `strategy` + `groupField` to options
-- Remove LiteQueue-specific quirks, align return shapes with StratQueue models
-- Update `ApiRegistry.Queue.cs` with new interfaces
-
-### 3.3 — Update `QueueWorkerService`
-- `g.workers.start()` config gains `dequeue` and `groupField` options
-- Worker loop passes strategy to dequeue call
-- Default remains FIFO (backward compatible behavior, even if the API shape changes)
-
-### 3.4 — Remove LiteQueue dependency
-- Remove `LiteQueue` NuGet reference from `Guida.csproj`
-- Clean up any LiteDB references that were queue-only (LiteDB may still be used by Store)
-
----
-
-## Phase 4 — Future Strategies (Deferred)
+## Phase 3 — Future Strategies (Deferred)
 
 Ideas for additional strategies beyond the initial two. Not planned, just captured:
 
