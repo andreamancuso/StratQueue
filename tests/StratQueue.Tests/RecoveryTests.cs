@@ -72,6 +72,42 @@ public class RecoveryTests
     }
 
     [Fact]
+    public void Released_item_preserves_retry_state_on_restart()
+    {
+        var dbPath = NewDbPath();
+        try
+        {
+            string itemId;
+            using (var client = new StratQueueClient(dbPath))
+            {
+                var enqueued = client.Enqueue(
+                    "jobs",
+                    "payload",
+                    new EnqueueOptions { GroupKey = "example.com", MaxRetries = 3 });
+                itemId = enqueued.Id;
+                var firstCheckout = client.Dequeue("jobs")!;
+                client.Abort(firstCheckout.CheckoutId, "transient failure");
+                var secondCheckout = client.Dequeue("jobs")!;
+                client.Release(secondCheckout.CheckoutId);
+            }
+
+            SqliteConnection.ClearAllPools();
+
+            using (var client = new StratQueueClient(dbPath))
+            {
+                var released = client.Peek("jobs");
+                Assert.NotNull(released);
+                Assert.Equal(itemId, released.Id);
+                Assert.Equal(1, released.Attempts);
+                Assert.Equal(3, released.MaxRetries);
+                Assert.Equal("example.com", released.GroupKey);
+                Assert.Equal("transient failure", released.LastError);
+            }
+        }
+        finally { Cleanup(dbPath); }
+    }
+
+    [Fact]
     public void DeadLetter_items_survive_restart()
     {
         var dbPath = NewDbPath();

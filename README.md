@@ -45,6 +45,10 @@ var item3 = queue.Dequeue("jobs", strategy); // google.com/job/2
 queue.Commit(item1!.CheckoutId);
 queue.Commit(item2!.CheckoutId);
 queue.Abort(item3!.CheckoutId, "connection timeout"); // Returns to pending
+
+// Return a checkout to pending without consuming a retry.
+var item4 = queue.Dequeue("jobs", strategy);
+queue.Release(item4!.CheckoutId);
 ```
 
 ## Async Consumers

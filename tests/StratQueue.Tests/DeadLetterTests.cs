@@ -77,6 +77,30 @@ public class DeadLetterTests : IDisposable
     }
 
     [Fact]
+    public void Release_returns_to_pending_without_changing_retry_state()
+    {
+        var original = _client.Enqueue(
+            "jobs",
+            "payload",
+            new EnqueueOptions { Priority = 2, GroupKey = "example.com", MaxRetries = 3 });
+        var firstCheckout = _client.Dequeue("jobs")!;
+        _client.Abort(firstCheckout.CheckoutId, "transient failure");
+        var attempted = _client.Dequeue("jobs")!;
+
+        _client.Release(attempted.CheckoutId);
+
+        var released = _client.Peek("jobs");
+        Assert.NotNull(released);
+        Assert.Equal(original.Id, released.Id);
+        Assert.Equal(1, released.Attempts);
+        Assert.Equal(3, released.MaxRetries);
+        Assert.Equal(2, released.Priority);
+        Assert.Equal("example.com", released.GroupKey);
+        Assert.Equal("transient failure", released.LastError);
+        Assert.Equal(ItemState.Pending, released.State);
+    }
+
+    [Fact]
     public void GetDeadLetterItems_returns_dead_lettered_items()
     {
         _client.Enqueue("jobs", "a", new EnqueueOptions { MaxRetries = 1 });

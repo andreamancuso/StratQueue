@@ -211,6 +211,26 @@ internal class QueueManager : IDisposable
         }
     }
 
+    public void Release(string checkoutId)
+    {
+        var (queueName, item) = FindCheckedOut(checkoutId);
+        var state = _queues[queueName];
+
+        lock (state.Lock)
+        {
+            state.RemoveCheckedOut(checkoutId);
+            var pending = item with
+            {
+                State = ItemState.Pending,
+                CheckoutId = null,
+                CheckedOutAt = null
+            };
+            state.AddPending(pending);
+            state.NotifyItemAvailable();
+            _journal.UpdateState(item.Id, ItemState.Pending, error: item.LastError);
+        }
+    }
+
     public QueueItem? Peek(string queueName, IDequeueStrategy? strategy = null)
     {
         strategy ??= new FifoStrategy();

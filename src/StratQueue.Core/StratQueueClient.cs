@@ -42,6 +42,10 @@ public class StratQueueClient : IDisposable
     public void Abort(string checkoutId, string? error = null)
         => _manager.Abort(checkoutId, error);
 
+    /// <summary>Release a checked-out item back to pending without consuming a retry.</summary>
+    public void Release(string checkoutId)
+        => _manager.Release(checkoutId);
+
     /// <summary>Peek at the next item without checking it out.</summary>
     public QueueItem? Peek(string queueName, IDequeueStrategy? strategy = null)
         => _manager.Peek(queueName, strategy);
