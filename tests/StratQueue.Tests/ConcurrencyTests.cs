@@ -58,9 +58,12 @@ public class ConcurrencyTests : IDisposable
     {
         const int itemCount = 100;
         var dequeued = new ConcurrentBag<string>();
+        var dequeuedCount = 0;
+        var allItemsDequeued = new TaskCompletionSource(
+            TaskCreationOptions.RunContinuationsAsynchronously);
 
         // Start dequeuers first
-        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
         var consumers = Enumerable.Range(0, 4).Select(_ => Task.Run(async () =>
         {
             while (!cts.Token.IsCancellationRequested)
@@ -68,8 +71,10 @@ public class ConcurrencyTests : IDisposable
                 try
                 {
                     var result = await _client.DequeueAsync("jobs", cancellationToken: cts.Token);
-                    dequeued.Add(result.Item.Payload);
                     _client.Commit(result.CheckoutId);
+                    dequeued.Add(result.Item.Payload);
+                    if (Interlocked.Increment(ref dequeuedCount) == itemCount)
+                        allItemsDequeued.TrySetResult();
                 }
                 catch (OperationCanceledException) { break; }
             }
@@ -84,15 +89,13 @@ public class ConcurrencyTests : IDisposable
 
         await Task.WhenAll(producers);
 
-        // Wait for all items to be consumed
-        while (dequeued.Count < itemCount && !cts.Token.IsCancellationRequested)
-            await Task.Delay(10);
-
+        await allItemsDequeued.Task.WaitAsync(cts.Token);
         cts.Cancel();
-        try { await Task.WhenAll(consumers); } catch { }
+        await Task.WhenAll(consumers);
 
         Assert.Equal(itemCount, dequeued.Count);
         Assert.Equal(itemCount, dequeued.Distinct().Count());
+        Assert.Equal(0, _client.Count("jobs"));
     }
 
     [Fact]
